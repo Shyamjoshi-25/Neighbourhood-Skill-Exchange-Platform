@@ -1,0 +1,7 @@
+import {Router} from 'express'; import User from '../models/User.js'; import {protect,allowRoles} from '../middleware/auth.js';
+const router=Router();
+router.get('/skilled',protect,async(req,res)=>{try{const q={role:'skilled_member',isBlocked:false,area:req.user.area}; if(req.query.skill) q.skills={$regex:String(req.query.skill),$options:'i'}; if(req.query.profession) q.profession={$regex:String(req.query.profession),$options:'i'}; if(req.query.available==='true') q.availability='Available'; const people=await User.find(q).select('-password -email').limit(100); res.json(people);}catch(e){console.error(e);res.status(500).json({message:'Could not load neighbours.'});}});
+router.get('/',protect,allowRoles('admin'),async(req,res)=>{try{const users=await User.find().select('-password').sort({createdAt:-1});res.json(users);}catch(e){console.error(e);res.status(500).json({message:'Could not load users.'});}});
+router.patch('/:id/block',protect,allowRoles('admin'),async(req,res)=>{const u=await User.findById(req.params.id);if(!u)return res.status(404).json({message:'User not found'});u.isBlocked=!u.isBlocked;await u.save();res.json({message:u.isBlocked?'User blocked':'User unblocked',isBlocked:u.isBlocked});});
+router.patch('/:id/verify',protect,allowRoles('admin'),async(req,res)=>{const u=await User.findById(req.params.id);if(!u)return res.status(404).json({message:'User not found'});u.verified=!u.verified;await u.save();res.json({verified:u.verified});});
+export default router;
